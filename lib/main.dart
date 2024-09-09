@@ -50,7 +50,7 @@ class _CollectionPageState extends State<CollectionPage> {
   Future<void> _initiateCollection() async {
     if (_formKey.currentState!.validate()) {
       // TODO: Replace with actual API endpoint
-      const String apiUrl = 'https://api.example.com/collection';
+      const String apiUrl = 'https://teeket-payments-e225a1f9edcf.herokuapp.com/mtnmo/collect/';
 
       try {
         final response = await http.post(
