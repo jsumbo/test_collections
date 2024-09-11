@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -17,13 +18,13 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.orange,
       ),
       home: const CollectionPage(),
-      debugShowCheckedModeBanner: false, 
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
 class CollectionPage extends StatefulWidget {
-  const CollectionPage({Key? key}) : super(key: key);
+  const CollectionPage({super.key});
 
   @override
   _CollectionPageState createState() => _CollectionPageState();
@@ -33,11 +34,14 @@ class _CollectionPageState extends State<CollectionPage> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _phoneController = TextEditingController();
+  String? _csrfToken;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _phoneController.text = '231';
+    _fetchCsrfToken();
   }
 
   @override
@@ -46,19 +50,48 @@ class _CollectionPageState extends State<CollectionPage> {
     _phoneController.dispose();
     super.dispose();
   }
-
+/// Fetches the CSRF token from the server.
+  Future<void> _fetchCsrfToken() async {
+    const String csrfUrl = 'https://teeket-payments-e225a1f9edcf.herokuapp.com/mtnmo/csrf-token/';
+    try {
+      final response = await http.get(Uri.parse(csrfUrl));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _csrfToken = data['csrfToken'];
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('CSRF token fetched successfully!')),
+        );
+      } else {
+        throw Exception('Failed to fetch CSRF token');
+      }
+    } catch (e) {
+      print('Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching CSRF token: $e')),
+      );
+    }
+  }
+  /// Initiates the collection process by sending a POST request to the server.
   Future<void> _initiateCollection() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Replace with actual API endpoint
-      const String apiUrl = 'https://teeket-payments-e225a1f9edcf.herokuapp.com/mtnmo/collect/';
+      setState(() {
+        _isLoading = true;
+      });
 
+      const String apiUrl = 'https://teeket-payments-e225a1f9edcf.herokuapp.com/mtnmo/collect/';
       try {
         final response = await http.post(
           Uri.parse(apiUrl),
-          body: {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': _csrfToken ?? '',
+          },
+          body: jsonEncode({
             'amount': _amountController.text,
             'phone': _phoneController.text,
-          },
+          }),
         );
 
         if (response.statusCode == 200) {
@@ -70,6 +103,10 @@ class _CollectionPageState extends State<CollectionPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -134,10 +171,21 @@ class _CollectionPageState extends State<CollectionPage> {
                   return null;
                 },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: _initiateCollection,
-                child: const Text('Submit'),
+                onPressed: _fetchCsrfToken,
+                child: const Text('Fetch CSRF Token'),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _csrfToken == null || _isLoading
+                    ? null
+                    : _initiateCollection,
+                child: _isLoading
+                    ? const CircularProgressIndicator(
+                        color: Colors.white,
+                      )
+                    : const Text('Submit'),
               ),
             ],
           ),
