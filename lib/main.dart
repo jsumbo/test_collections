@@ -7,6 +7,7 @@ void main() {
   runApp(const MyApp());
 }
 
+/// The root widget of the application.
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -23,6 +24,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
+/// A stateful widget representing the collection page.
 class CollectionPage extends StatefulWidget {
   const CollectionPage({super.key});
 
@@ -50,7 +52,8 @@ class _CollectionPageState extends State<CollectionPage> {
     _phoneController.dispose();
     super.dispose();
   }
-/// Fetches the CSRF token from the server.
+
+  /// Fetches the CSRF token from the server.
   Future<void> _fetchCsrfToken() async {
     const String csrfUrl = 'https://teeket-payments-e225a1f9edcf.herokuapp.com/mtnmo/csrf-token/';
     try {
@@ -73,12 +76,15 @@ class _CollectionPageState extends State<CollectionPage> {
       );
     }
   }
+
   /// Initiates the collection process by sending a POST request to the server.
   Future<void> _initiateCollection() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
+
+      _showWaitingDialog();
 
       const String apiUrl = 'https://teeket-payments-e225a1f9edcf.herokuapp.com/mtnmo/collect/';
       try {
@@ -95,6 +101,7 @@ class _CollectionPageState extends State<CollectionPage> {
         );
 
         if (response.statusCode == 200) {
+          Navigator.of(context).pop(); // Close the waiting dialog
           _showSuccessDialog();
         } else {
           throw Exception('Failed to initiate collection');
@@ -111,13 +118,43 @@ class _CollectionPageState extends State<CollectionPage> {
     }
   }
 
+  /// Displays a waiting dialog when the submit button is clicked.
+  void _showWaitingDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Waiting for approval...'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.deepOrange),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'To approve, make sure you have enough balance first. If you do not see a popup prompt on your cell phone, Dial *156*1# To approve payment!',
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    // Close the dialog after 8 seconds
+    Future.delayed(const Duration(seconds: 8), () {
+      Navigator.of(context).pop();
+    });
+  }
+
+  /// Displays a success dialog when the collection is initiated successfully.
   void _showSuccessDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Success'),
-          content: const Text('Collection initiated successfully!'),
+          content: const Text('Your Payment was successful!'),
           actions: <Widget>[
             TextButton(
               child: const Text('OK'),
