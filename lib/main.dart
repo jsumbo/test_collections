@@ -133,7 +133,7 @@ class _CollectionPageState extends State<CollectionPage> {
               ),
               SizedBox(height: 16),
               Text(
-                'To approve, make sure you have enough balance first. If you do not see a popup prompt on your cell phone, Dial *156*1# To approve payment!',
+                'If you do not see a popup prompt on your cell phone, Dial *156*8*2# to approve the payment.',
               ),
             ],
           ),
