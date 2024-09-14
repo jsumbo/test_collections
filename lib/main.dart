@@ -7,7 +7,6 @@ void main() {
   runApp(const MyApp());
 }
 
-/// The root widget of the application.
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -24,7 +23,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// A stateful widget representing the collection page.
 class CollectionPage extends StatefulWidget {
   const CollectionPage({super.key});
 
@@ -37,7 +35,8 @@ class _CollectionPageState extends State<CollectionPage> {
   final _amountController = TextEditingController();
   final _phoneController = TextEditingController();
   String? _csrfToken;
-  bool _isLoading = false;
+  String _selectedCurrency = 'USD'; // Default currency
+  bool _isLoading = false; // New loading state flag
 
   @override
   void initState() {
@@ -53,7 +52,6 @@ class _CollectionPageState extends State<CollectionPage> {
     super.dispose();
   }
 
-  /// Fetches the CSRF token from the server.
   Future<void> _fetchCsrfToken() async {
     const String csrfUrl = 'https://teeket-payments-e225a1f9edcf.herokuapp.com/mtnmo/csrf-token/';
     try {
@@ -77,11 +75,10 @@ class _CollectionPageState extends State<CollectionPage> {
     }
   }
 
-  /// Initiates the collection process by sending a POST request to the server.
   Future<void> _initiateCollection() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
-        _isLoading = true;
+        _isLoading = true; // Start loading
       });
 
       _showWaitingDialog();
@@ -97,12 +94,16 @@ class _CollectionPageState extends State<CollectionPage> {
           body: jsonEncode({
             'amount': _amountController.text,
             'phone': _phoneController.text,
+            'currency': _selectedCurrency, // Send selected currency
           }),
         );
 
         if (response.statusCode == 200) {
-          Navigator.of(context).pop(); // Close the waiting dialog
-          _showSuccessDialog();
+          // Close the waiting dialog and show the success dialog
+          Future.delayed(const Duration(seconds: 5), () {
+            Navigator.of(context).pop(); // Close the waiting dialog
+            _showSuccessDialog();
+          });
         } else {
           throw Exception('Failed to initiate collection');
         }
@@ -112,13 +113,12 @@ class _CollectionPageState extends State<CollectionPage> {
         );
       } finally {
         setState(() {
-          _isLoading = false;
+          _isLoading = false; // Stop loading
         });
       }
     }
   }
 
-  /// Displays a waiting dialog when the submit button is clicked.
   void _showWaitingDialog() {
     showDialog(
       context: context,
@@ -133,28 +133,22 @@ class _CollectionPageState extends State<CollectionPage> {
               ),
               SizedBox(height: 16),
               Text(
-                'To approve, make sure you have enough balance first. If you do not see a popup prompt on your cell phone, Dial *156*1# To approve payment!',
+                'If you do not see a popup prompt on your cell phone, Dial *156*8*2# to approve the payment.',
               ),
             ],
           ),
         );
       },
     );
-
-    // Close the dialog after 8 seconds
-    Future.delayed(const Duration(seconds: 8), () {
-      Navigator.of(context).pop();
-    });
   }
 
-  /// Displays a success dialog when the collection is initiated successfully.
   void _showSuccessDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Success'),
-          content: const Text('Your Payment was successful!'),
+          content: const Text('Payment was successful!'),
           actions: <Widget>[
             TextButton(
               child: const Text('OK'),
@@ -206,6 +200,26 @@ class _CollectionPageState extends State<CollectionPage> {
                     return 'Phone number must be at least 4 digits';
                   }
                   return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedCurrency,
+                decoration: const InputDecoration(labelText: 'Currency'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'USD',
+                    child: Text('USD'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'LRD',
+                    child: Text('LRD'),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCurrency = value!;
+                  });
                 },
               ),
               const SizedBox(height: 16),
