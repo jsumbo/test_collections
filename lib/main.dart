@@ -148,7 +148,7 @@ class _CollectionPageState extends State<CollectionPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Success'),
-          content: const Text('Payment was successful!'),
+          content: const Text('Collection initiated successfully!'),
           actions: <Widget>[
             TextButton(
               child: const Text('OK'),
